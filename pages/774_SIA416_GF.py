@@ -180,8 +180,19 @@ def convert_selected_columns_to_float(GF_Mobimo):
         for column in columns_to_convert:
             if column in GF_Mobimo.columns:
                 # Convert each value individually, handling apostrophes and potential formatting issues
-                GF_Mobimo[column] = GF_Mobimo[column].apply(lambda x: pd.to_numeric(x.replace("'", "") if isinstance(x, str) else x, errors='coerce'))
+                GF_Mobimo[column] = GF_Mobimo[column].apply(lambda x: clean_and_convert_to_float(x))
     return GF_Mobimo
+
+def clean_and_convert_to_float(value):
+    if isinstance(value, str):
+        # Remove non-numeric characters (except for decimal point)
+        cleaned_value = ''.join(char for char in value if char.isdigit() or char == '.')
+        try:
+            return float(cleaned_value)
+        except ValueError as e:
+            print(f"Conversion error for value '{value}': {e}")
+            return None
+    return value
 
 def calculate_totals(df_input1, df_input2, df_output, input, row):
     # Sum values from 'Wohnen Bestand' in GF_Mobimo and AGF_Mobimo
@@ -253,7 +264,11 @@ if uploaded_file_sia is not None:
         GF_Mobimo['Geschossflächen oberirdisch'] = unique_storey_names
         numeric_columns = columns[1:]  # All columns except the first one
         GF_Mobimo[numeric_columns] = GF_Mobimo[numeric_columns].fillna(0)
-        GF_dfsia = convert_selected_columns_to_float(GF_dfsia)      
+        # st.dataframe(GF_dfsia)
+        # st.dataframe(GF_dfsia.applymap(type))
+        GF_dfsia = convert_selected_columns_to_float(GF_dfsia)   
+        # st.dataframe(GF_dfsia)
+        # st.dataframe(GF_dfsia.applymap(type))
         GF_Mobimo = get_Wohnen_Gewerbe_Gemeinschaft(GF_dfsia, GF_Mobimo)        
         GF_Mobimo['Wohnen Total'] = GF_Mobimo['Wohnen Bestand'] + GF_Mobimo['Wohnen Neubau'] 
         GF_Mobimo['Gewerbe Total'] = GF_Mobimo['Gewerbe Bestand'] + GF_Mobimo['Gewerbe Neubau'] 
@@ -261,6 +276,8 @@ if uploaded_file_sia is not None:
         GF_Mobimo = GF_Mobimo[~GF_Mobimo['Geschossflächen oberirdisch'].isin(['2. UG', '1. UG'])]
         st.header("Geschossflächen oberirdisch")
         st.dataframe(GF_Mobimo)
+        # st.dataframe(GF_Mobimo.applymap(type))
+
 
         #========== Get AGF (Aussengeschossflächen) table ==========
         AGF_dfsia = convert_selected_columns_to_float(AGF_dfsia)  
